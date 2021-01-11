@@ -16,6 +16,9 @@
 
 package com.mycompany.app;
 
+import com.esri.arcgisruntime.security.AuthenticationManager;
+import com.esri.arcgisruntime.security.DefaultAuthenticationChallengeHandler;
+import com.esri.arcgisruntime.security.OAuthConfiguration;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
@@ -101,12 +104,15 @@ public class App extends Application {
     }
 
     private void setupPortalItem() {
-        String portalItemId = "ff52e100893b4bfcae52acf56ee537a9";
-        Portal portal = new Portal("http://www.arcgis.com");
+        String portalItemId = "ff52e100893b4bfcae52acf56ee537a9"; // tourist spots
+        String portalItemId2 = "9d5303028fbd4b1ebe09a1be88236551"; // restaurants
+        Portal portal = new Portal("http://www.arcgis.com", false);
         PortalItem portalItem = new PortalItem(portal, portalItemId);
+        PortalItem portalItem2 = new PortalItem(portal, portalItemId2);
         portalItem.addDoneLoadingListener(() -> {
             if (portalItem.getLoadStatus() == LoadStatus.LOADED) {
                 setupFeatureLayerFromPortalItem(portalItem);
+                setupFeatureLayerFromPortalItem(portalItem2);
             } else {
                 new Alert(AlertType.ERROR, "Portal Item: " + portalItem.getLoadError().getMessage()).show();
             }
@@ -240,32 +246,44 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) {
+        try {
+            // set the title and size of the stage and show it
+            stage.setTitle("Maramures County App");
+            stage.setWidth(800);
+            stage.setHeight(700);
+            stage.show();
 
-        // set the title and size of the stage and show it
-        stage.setTitle("Maramures County App");
-        stage.setWidth(800);
-        stage.setHeight(700);
-        stage.show();
+            // create a JavaFX scene with a stack pane as the root node and add it to the scene
+            StackPane stackPane = new StackPane();
+            Scene scene = new Scene(stackPane);
+            stage.setScene(scene);
 
-        // create a JavaFX scene with a stack pane as the root node and add it to the scene
-        StackPane stackPane = new StackPane();
-        Scene scene = new Scene(stackPane);
-        stage.setScene(scene);
+            // create a MapView to display the map and add it to the stack pane
+            mapView = new MapView();
+            stackPane.getChildren().add(mapView);
 
-        // create a MapView to display the map and add it to the stack pane
-        mapView = new MapView();
-        stackPane.getChildren().add(mapView);
+//            // set up an oauth config with url to portal, a client id and a re-direct url
+//            OAuthConfiguration oAuthConfiguration = new OAuthConfiguration("https://www.arcgis.com/", "0TVYXiXVOQtjv3d8", "urn:ietf:wg:oauth:2.0:oob");
+//
+//            // set up the authentication manager to handle authentication challenges
+//            DefaultAuthenticationChallengeHandler defaultAuthenticationChallengeHandler = new DefaultAuthenticationChallengeHandler();
+//            AuthenticationManager.setAuthenticationChallengeHandler(defaultAuthenticationChallengeHandler);
+//            // add the OAuth configuration
+//            AuthenticationManager.addOAuthConfiguration(oAuthConfiguration);
 
-        setupMap();
-        setupPortalItem();
-        //setupGraphicsOverlay();
-        //addPointGraphic();
-        //addPolylineGraphic();
-        //addPolygonGraphic();
-        //addOpenSpaceLayer();
-        addTrailsLayer();
-        //addTrailheadsLayer();
+            setupMap();
+            setupPortalItem();
+            //setupGraphicsOverlay();
+            //addPointGraphic();
+            //addPolylineGraphic();
+            //addPolygonGraphic();
+            //addOpenSpaceLayer();
+            addTrailsLayer();
+            //addTrailheadsLayer();
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
