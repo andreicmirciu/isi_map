@@ -16,6 +16,28 @@
 
 package com.mycompany.app;
 
+
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+import com.esri.arcgisruntime.ArcGISRuntimeException;
+import com.esri.arcgisruntime.geometry.CoordinateFormatter;
+import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
+import com.esri.arcgisruntime.mapping.ArcGISMap;
+import com.esri.arcgisruntime.mapping.Basemap;
+import com.esri.arcgisruntime.mapping.view.Callout;
+import com.esri.arcgisruntime.mapping.view.MapView;
+import com.esri.arcgisruntime.geometry.*;
+import com.esri.arcgisruntime.mapping.view.Callout;
 import com.esri.arcgisruntime.security.AuthenticationManager;
 import com.esri.arcgisruntime.security.DefaultAuthenticationChallengeHandler;
 import com.esri.arcgisruntime.security.OAuthConfiguration;
@@ -47,11 +69,6 @@ import com.esri.arcgisruntime.symbology.SimpleRenderer;
 import com.esri.arcgisruntime.symbology.UniqueValueRenderer;
 import com.esri.arcgisruntime.symbology.UniqueValueRenderer.UniqueValue;
 
-import com.esri.arcgisruntime.geometry.Point;
-import com.esri.arcgisruntime.geometry.PointCollection;
-import com.esri.arcgisruntime.geometry.Polygon;
-import com.esri.arcgisruntime.geometry.Polyline;
-import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
 import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
@@ -67,6 +84,7 @@ import com.esri.arcgisruntime.loadable.LoadStatus;
 import com.esri.arcgisruntime.mapping.Viewpoint;
 import com.esri.arcgisruntime.portal.Portal;
 import com.esri.arcgisruntime.portal.PortalItem;
+import javafx.util.Duration;
 
 public class App extends Application {
 
@@ -80,6 +98,7 @@ public class App extends Application {
     private GraphicsOverlay graphicsOverlay;
 
     private MapView mapView;
+    private TextField input;
 
     private void addTrailheadsLayer() {
         if (mapView != null) {
@@ -101,6 +120,30 @@ public class App extends Application {
             SimpleRenderer simpleRenderer = new SimpleRenderer(pictureMarkerSymbol);
             featureLayer.setRenderer(simpleRenderer);
         }
+    }
+
+    /**
+     * Shows a callout at the specified location with different coordinate formats in the callout.
+     *
+     * @param location coordinate to show coordinate formats for
+     */
+    private void showCalloutWithLocationCoordinates(Point location) {
+        Callout callout = mapView.getCallout();
+        callout.setTitle("Location:");
+        String latLonDecimalDegrees = CoordinateFormatter.toLatitudeLongitude(location, CoordinateFormatter
+                .LatitudeLongitudeFormat.DECIMAL_DEGREES, 4);
+        String latLonDegMinSec = CoordinateFormatter.toLatitudeLongitude(location, CoordinateFormatter
+                .LatitudeLongitudeFormat.DEGREES_MINUTES_SECONDS, 1);
+        String utm = CoordinateFormatter.toUtm(location, CoordinateFormatter.UtmConversionMode.LATITUDE_BAND_INDICATORS,
+                true);
+        String usng = CoordinateFormatter.toUsng(location, 4, true);
+        callout.setDetail(
+                "Decimal Degrees: " + latLonDecimalDegrees + "\n" +
+                        "Degrees, Minutes, Seconds: " + latLonDegMinSec + "\n" +
+                        "UTM: " + utm + "\n" +
+                        "USNG: " + usng + "\n"
+        );
+        mapView.getCallout().showCalloutAt(location, new Duration(500));
     }
 
     private void setupPortalItem() {
@@ -160,7 +203,7 @@ public class App extends Application {
 //        trailsUniqueValueRenderer.getUniqueValues().add(trailsNoBike);
     }
 
-    private void addOpenSpaceLayer() {
+    /*private void addOpenSpaceLayer() {
 
         String openSpacesFeaturesUrl =
                 "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space/FeatureServer/0";
@@ -179,14 +222,14 @@ public class App extends Application {
         acreageBreaks.add(orangeClassBreak);
         ClassBreaksRenderer openSpacesClassBreaksRenderer = new ClassBreaksRenderer("GIS_ACRES", acreageBreaks);
         featureLayer.setRenderer(openSpacesClassBreaksRenderer);
-    }
+    }*/
 
-    private void setupGraphicsOverlay() {
+    /*private void setupGraphicsOverlay() {
         if (mapView != null) {
             graphicsOverlay = new GraphicsOverlay();
             mapView.getGraphicsOverlays().add(graphicsOverlay);
         }
-    }
+    }*/
 
     private void addPointGraphic() {
         if (graphicsOverlay != null) {
@@ -198,7 +241,7 @@ public class App extends Application {
         }
     }
 
-    private void addPolylineGraphic() {
+    /*private void addPolylineGraphic() {
         if (graphicsOverlay != null) {
             PointCollection polylinePoints = new PointCollection(SpatialReferences.getWgs84());
             polylinePoints.add(new Point(-118.29026, 34.1816));
@@ -226,7 +269,7 @@ public class App extends Application {
             Graphic polygonGraphic = new Graphic(polygon, polygonSymbol);
             graphicsOverlay.getGraphics().add(polygonGraphic);
         }
-    }
+    }*/
 
     private void setupMap() {
         if (mapView != null) {
@@ -237,6 +280,49 @@ public class App extends Application {
             ArcGISMap map = new ArcGISMap(basemapType, latitude, longitude, levelOfDetail);
 
             mapView.setMap(map);
+
+            // click event to display the callout with the formatted coordinates of the clicked location
+            mapView.setOnMouseClicked(mouseEvent -> {
+                // check that the primary mouse button was clicked and user is not panning
+                if (mouseEvent.isStillSincePress() && mouseEvent.getButton() == MouseButton.PRIMARY) {
+                    // get the map point where the user clicked
+                    Point2D point = new Point2D(mouseEvent.getX(), mouseEvent.getY());
+                    Point mapPoint = mapView.screenToLocation(point);
+                    // show the callout at the point with the different coordinate format strings
+                    showCalloutWithLocationCoordinates(mapPoint);
+                }
+            });
+
+            // create text field to input user's own coordinate string
+            input = new TextField();
+            input.setMaxWidth(300);
+            input.setPromptText("Input a coordinate string (LatLon, UTM, or USNG)");
+            input.setOnAction(e -> {
+                String inputText = input.getText();
+                if (!"".equals(inputText)) {
+                    // try each coordinate format converter, use the first one with the correct format
+                    try {
+                        Point point = CoordinateFormatter.fromLatitudeLongitude(inputText, map.getSpatialReference());
+                        showCalloutWithLocationCoordinates(point);
+                        return;
+                    } catch (ArcGISRuntimeException ex) {
+                        // ignore, wrong format
+                    }
+                    try {
+                        Point point = CoordinateFormatter.fromUtm(inputText, map.getSpatialReference(), CoordinateFormatter.UtmConversionMode.LATITUDE_BAND_INDICATORS);
+                        showCalloutWithLocationCoordinates(point);
+                        return;
+                    } catch (ArcGISRuntimeException ex) {
+                        // ignore, wrong format
+                    }
+                    try {
+                        Point point = CoordinateFormatter.fromUsng(inputText, map.getSpatialReference());
+                        showCalloutWithLocationCoordinates(point);
+                    } catch (ArcGISRuntimeException ex) {
+                        // ignore, wrong format
+                    }
+                }
+            });
         }
     }
 
@@ -260,7 +346,7 @@ public class App extends Application {
 
             // create a MapView to display the map and add it to the stack pane
             mapView = new MapView();
-            stackPane.getChildren().add(mapView);
+
 
 //            // set up an oauth config with url to portal, a client id and a re-direct url
 //            OAuthConfiguration oAuthConfiguration = new OAuthConfiguration("https://www.arcgis.com/", "0TVYXiXVOQtjv3d8", "urn:ietf:wg:oauth:2.0:oob");
@@ -272,6 +358,9 @@ public class App extends Application {
 //            AuthenticationManager.addOAuthConfiguration(oAuthConfiguration);
 
             setupMap();
+            stackPane.getChildren().addAll(mapView, input);
+            StackPane.setAlignment(input, Pos.TOP_LEFT);
+            StackPane.setMargin(input, new Insets(10, 0, 0, 10));
             setupPortalItem();
             //setupGraphicsOverlay();
             //addPointGraphic();
